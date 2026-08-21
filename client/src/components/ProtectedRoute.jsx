@@ -7,10 +7,6 @@ function ProtectedRoute({
   const token = localStorage.getItem("token");
   const userString = localStorage.getItem("user");
 
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-
   const user = (() => {
     try {
       return userString ? JSON.parse(userString) : null;
@@ -19,13 +15,17 @@ function ProtectedRoute({
     }
   })();
 
-  if (user?.role === "player" && user?.approved !== true) {
+  if (!token || !user) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role === "player" && user.approved !== true) {
     return <Navigate to="/pending-approval" replace />;
   }
 
-  if (adminOnly && user?.role !== "admin") {
+  if (adminOnly && user.role !== "admin") {
     return <Navigate to="/player" replace />;
   }
 

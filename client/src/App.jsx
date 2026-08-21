@@ -26,6 +26,16 @@ function App() {
         {/* ================================================== */}
 
         <Route
+          path="/"
+          element={<Navigate to="/login" replace />}
+        />
+
+        <Route
+          path="/"
+          element={<Navigate to="/login" replace />}
+        />
+
+        <Route
           path="/login"
           element={<Login />}
         />
