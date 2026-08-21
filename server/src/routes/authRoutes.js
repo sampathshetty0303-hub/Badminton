@@ -14,14 +14,12 @@ const smtpPassword = process.env.SMTP_PASSWORD?.replace(/\s+/g, "");
 
 const mailer = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 587),
-  secure: process.env.SMTP_SECURE === "true",
+  port: Number(process.env.SMTP_PORT || 465),
+  secure: true,
   family: 4,
-  connectionTimeout: 15000,
-  socketTimeout: 15000,
   auth: {
     user: process.env.SMTP_USER,
-    pass: smtpPassword,
+    pass: process.env.SMTP_PASSWORD,
   },
 });
 
