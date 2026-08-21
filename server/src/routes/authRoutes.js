@@ -1,16 +1,10 @@
-const crypto = require("crypto");
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { Resend } = require("resend");
 
 const User = require("../models/User");
-const OtpVerification = require("../models/OtpVerification");
 
 const router = express.Router();
-const OTP_TTL_MS = 10 * 60 * 1000;
-const OTP_COOLDOWN_MS = 60 * 1000;
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 const normalizeEmail = (email) => email?.trim().toLowerCase();
 
@@ -24,132 +18,83 @@ const createToken = (user, role = user.role) => jwt.sign(
   { expiresIn: "7d" }
 );
 
-const sendOtp = async ({ email, code }) => {
-  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM) {
-    throw new Error("Resend is not configured");
-  }
-
-  const response = await resend.emails.send({
-    from: process.env.RESEND_FROM,
-    to: email,
-    subject: "Your Shuttle verification code",
-    text: `Your Shuttle verification code is ${code}. It expires in 10 minutes.`,
-    html: `<p>Your Shuttle verification code is:</p><p style="font-size: 28px; font-weight: bold; letter-spacing: 8px">${code}</p><p>This code expires in 10 minutes.</p>`,
-  });
-
-  if (response.error) {
-    throw new Error(response.error.message || "Unable to send verification code");
-  }
-};
-
-router.post("/request-otp", async (req, res) => {
+router.post("/register", async (req, res) => {
   try {
-    const email = normalizeEmail(req.body.email);
-    const purpose = req.body.purpose === "register" ? "register" : "login";
     const name = req.body.name?.trim() || "";
+    const email = normalizeEmail(req.body.email);
+    const password = typeof req.body.password === "string" ? req.body.password : "";
+
+    if (!name) {
+      return res.status(400).json({ message: "Name is required to create an account" });
+    }
 
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
       return res.status(400).json({ message: "Enter a valid email address" });
     }
 
-    if (purpose === "register" && !name) {
-      return res.status(400).json({ message: "Name is required to create an account" });
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long" });
     }
 
     const existingUser = await User.findOne({ email });
 
-    if (purpose === "login" && !existingUser) {
-      return res.status(404).json({ message: "No account found for this email" });
-    }
-
-    if (purpose === "register" && existingUser) {
+    if (existingUser) {
       return res.status(409).json({ message: "An account already exists for this email" });
     }
 
-    const recentOtp = await OtpVerification.findOne({
-      email,
-      purpose,
-      createdAt: { $gt: new Date(Date.now() - OTP_COOLDOWN_MS) },
-    });
-
-    if (recentOtp) {
-      return res.status(429).json({ message: "Please wait before requesting another code" });
-    }
-
-    const code = crypto.randomInt(100000, 1000000).toString();
-    const codeHash = await bcrypt.hash(code, 10);
-
-    await OtpVerification.deleteMany({ email, purpose });
-    await OtpVerification.create({
-      email,
+    const user = await User.create({
       name,
-      purpose,
-      codeHash,
-      expiresAt: new Date(Date.now() + OTP_TTL_MS),
+      email,
+      password: await bcrypt.hash(password, 10),
+      role: "player",
+      approved: false,
     });
 
-    await sendOtp({ email, code });
-
-    return res.json({ message: "Verification code sent" });
+    return res.status(201).json({
+      message: "Account created successfully",
+      token: createToken(user, user.role),
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        approved: false,
+      },
+    });
   } catch (error) {
-    console.error("Request OTP error:", error);
-    return res.status(503).json({ message: "Unable to send verification code" });
+    console.error("Register error:", error);
+    return res.status(500).json({ message: "Unable to create account" });
   }
 });
 
-router.post("/verify-otp", async (req, res) => {
+router.post("/login", async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
-    const purpose = req.body.purpose === "register" ? "register" : "login";
-    const code = String(req.body.code || "").trim();
+    const password = typeof req.body.password === "string" ? req.body.password : "";
 
-    if (!email || !/^\d{6}$/.test(code)) {
-      return res.status(400).json({ message: "Enter the 6-digit verification code" });
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ message: "Enter a valid email address" });
     }
 
-    const verification = await OtpVerification.findOne({
-      email,
-      purpose,
-      expiresAt: { $gt: new Date() },
-    }).sort({ createdAt: -1 });
-
-    if (!verification || !(await bcrypt.compare(code, verification.codeHash))) {
-      return res.status(401).json({ message: "Invalid or expired verification code" });
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
     }
 
-    await OtpVerification.deleteMany({ email, purpose });
+    const user = await User.findOne({ email });
 
-    let user = await User.findOne({ email });
-
-    if (purpose === "register") {
-      if (user) {
-        return res.status(409).json({ message: "An account already exists for this email" });
-      }
-
-      user = await User.create({
-        name: verification.name,
-        email,
-        password: await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10),
-        role: "player",
-        approved: false,
-      });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    if (!user) {
-      return res.status(404).json({ message: "No account found for this email" });
-    }
+    const isConfiguredAdmin = email === normalizeEmail(process.env.ADMIN_EMAIL);
+    const authenticatedRole = isConfiguredAdmin ? "admin" : user.role;
 
-    const isConfiguredAdmin = purpose === "login"
-      && email === normalizeEmail(process.env.ADMIN_EMAIL);
-
-    if (purpose === "login" && !isConfiguredAdmin && user.approved !== true) {
+    if (!isConfiguredAdmin && user.approved !== true) {
       return res.status(403).json({
         code: "ACCOUNT_PENDING_APPROVAL",
         message: "Your account is waiting for admin approval",
       });
     }
-
-    const authenticatedRole = isConfiguredAdmin ? "admin" : user.role;
 
     return res.json({
       message: "Authentication successful",
@@ -163,8 +108,8 @@ router.post("/verify-otp", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Verify OTP error:", error);
-    return res.status(500).json({ message: "Unable to verify code" });
+    console.error("Login error:", error);
+    return res.status(500).json({ message: "Unable to login" });
   }
 });
 

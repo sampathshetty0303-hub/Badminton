@@ -9,8 +9,7 @@ function Login() {
   const [mode, setMode] = useState("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [codeSent, setCodeSent] = useState(false);
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -19,13 +18,14 @@ function Login() {
 
   const switchMode = (nextMode) => {
     setMode(nextMode);
-    setCodeSent(false);
-    setCode("");
+    setPassword("");
     setError("");
     setSuccess("");
   };
 
-  const requestCode = async () => {
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     if (isRegistering && !name.trim()) {
       setError("Enter your name.");
       return;
@@ -36,38 +36,27 @@ function Login() {
       return;
     }
 
-    try {
-      setLoading(true);
-      setError("");
-      setSuccess("");
-      await api.post("/auth/request-otp", {
-        name: name.trim(),
-        email: email.trim(),
-        purpose: mode,
-      });
-      setCodeSent(true);
-      setSuccess(`A verification code was sent to ${email.trim()}.`);
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || "Unable to send verification code.");
-    } finally {
-      setLoading(false);
+    if (!password.trim()) {
+      setError("Enter your password.");
+      return;
     }
-  };
 
-  const verifyCode = async () => {
-    if (!/^\d{6}$/.test(code.trim())) {
-      setError("Enter the 6-digit verification code.");
+    if (password.trim().length < 6) {
+      setError("Password must be at least 6 characters long.");
       return;
     }
 
     try {
       setLoading(true);
       setError("");
-      const response = await api.post("/auth/verify-otp", {
-        email: email.trim(),
-        code: code.trim(),
-        purpose: mode,
-      });
+      setSuccess("");
+
+      const endpoint = isRegistering ? "/auth/register" : "/auth/login";
+      const payload = isRegistering
+        ? { name: name.trim(), email: email.trim(), password: password.trim() }
+        : { email: email.trim(), password: password.trim() };
+
+      const response = await api.post(endpoint, payload);
       const { token, user } = response.data;
 
       if (user.role !== "admin" && user.approved !== true) {
@@ -79,24 +68,24 @@ function Login() {
 
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify({ ...user, approved: true }));
+
+      if (isRegistering) {
+        setSuccess("Account created successfully.");
+      }
+
       navigate(user.role === "admin" ? "/admin" : "/player", { replace: true });
-    } catch (verifyError) {
-      if (verifyError.response?.data?.code === "ACCOUNT_PENDING_APPROVAL") {
+    } catch (submitError) {
+      if (submitError.response?.data?.code === "ACCOUNT_PENDING_APPROVAL") {
         navigate("/pending-approval", {
           state: { email: email.trim(), name },
         });
         return;
       }
-      setError(verifyError.response?.data?.message || "Unable to verify code.");
+
+      setError(submitError.response?.data?.message || "Unable to authenticate.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (codeSent) await verifyCode();
-    else await requestCode();
   };
 
   return (
@@ -110,7 +99,7 @@ function Login() {
       <div className="login-form-panel">
         <div className="login-form-container">
           <div className="mobile-login-brand"><div className="login-brand-mark"><Trophy size={20} /></div><strong>SHUTTLE</strong></div>
-          <div className="login-heading"><span className="eyebrow">{isRegistering ? "PLAYER REGISTRATION" : "SHUTTLE ACCESS"}</span><h2>{isRegistering ? "Create your account" : "Welcome back"}</h2><p>{isRegistering ? "Create a player account with your email." : "Use a one-time code to securely continue."}</p></div>
+          <div className="login-heading"><span className="eyebrow">{isRegistering ? "PLAYER REGISTRATION" : "SHUTTLE ACCESS"}</span><h2>{isRegistering ? "Create your account" : "Welcome back"}</h2><p>{isRegistering ? "Create a player account with your email and password." : "Sign in with your email and password."}</p></div>
 
           <div className="auth-mode-switch" role="tablist" aria-label="Authentication mode">
             <button type="button" className={mode === "login" ? "auth-mode-active" : ""} onClick={() => switchMode("login")}>Sign in</button>
@@ -118,16 +107,15 @@ function Login() {
           </div>
 
           <form className="login-form" onSubmit={handleSubmit}>
-            {isRegistering && !codeSent && <div><label htmlFor="name">Full name</label><input id="name" type="text" placeholder="Your name" value={name} onChange={(event) => setName(event.target.value)} disabled={loading} autoComplete="name" /></div>}
-            <div><label htmlFor="email">Email address</label><input id="email" type="email" placeholder="you@badminton.com" value={email} onChange={(event) => setEmail(event.target.value)} disabled={loading || codeSent} autoComplete="email" /></div>
-            {codeSent && <div><label htmlFor="code">Verification code</label><div className="password-input"><input id="code" type="text" inputMode="numeric" maxLength={6} placeholder="Enter 6 digits" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} disabled={loading} autoComplete="one-time-code" /><KeyRound size={16} /></div></div>}
+            {isRegistering && <div><label htmlFor="name">Full name</label><input id="name" type="text" placeholder="Your name" value={name} onChange={(event) => setName(event.target.value)} disabled={loading} autoComplete="name" /></div>}
+            <div><label htmlFor="email">Email address</label><input id="email" type="email" placeholder="you@badminton.com" value={email} onChange={(event) => setEmail(event.target.value)} disabled={loading} autoComplete="email" /></div>
+            <div><label htmlFor="password">Password</label><div className="password-input"><input id="password" type="password" placeholder="Enter your password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={loading} autoComplete={isRegistering ? "new-password" : "current-password"} /><KeyRound size={16} /></div></div>
             {error && <div className="login-error">{error}</div>}
             {success && <div className="login-success">{success}</div>}
-            <button className="login-submit" disabled={loading}><span>{loading ? (codeSent ? "Verifying..." : "Sending code...") : (codeSent ? "Verify and continue" : "Send verification code")}</span>{!loading && <ArrowRight size={17} />}</button>
+            <button className="login-submit" disabled={loading}><span>{loading ? (isRegistering ? "Creating account..." : "Signing in...") : (isRegistering ? "Create account" : "Sign in")}</span>{!loading && <ArrowRight size={17} />}</button>
           </form>
 
-          {codeSent && <button type="button" className="change-email-button" onClick={() => { setCodeSent(false); setCode(""); setSuccess(""); setError(""); }} disabled={loading}>Use a different email</button>}
-          <p className="login-security"><KeyRound size={13} /> Codes expire after 10 minutes</p>
+          <p className="login-security"><KeyRound size={13} /> Use your email and password to continue</p>
         </div>
       </div>
     </div>

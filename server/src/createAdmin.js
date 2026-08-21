@@ -49,7 +49,8 @@ const createAdmin = async () => {
     console.log("ADMIN LOGIN");
     console.log("================================");
     console.log("Email:    sampathshetty0303@gmail.com");
-    console.log("Login:    request an email OTP");
+    console.log("Password: admin123");
+    console.log("Login:    use email and password");
     console.log("Role:     admin");
     console.log("================================");
     console.log("");
