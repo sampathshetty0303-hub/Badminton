@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
 const User = require("../models/User");
 const OtpVerification = require("../models/OtpVerification");
@@ -10,18 +10,7 @@ const OtpVerification = require("../models/OtpVerification");
 const router = express.Router();
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_COOLDOWN_MS = 60 * 1000;
-const smtpPassword = process.env.SMTP_PASSWORD?.replace(/\s+/g, "");
-
-const mailer = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 465),
-  secure: true,
-  family: 4,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const normalizeEmail = (email) => email?.trim().toLowerCase();
 
@@ -36,17 +25,21 @@ const createToken = (user, role = user.role) => jwt.sign(
 );
 
 const sendOtp = async ({ email, code }) => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !smtpPassword || !process.env.SMTP_FROM) {
-    throw new Error("SMTP authentication is not configured");
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM) {
+    throw new Error("Resend is not configured");
   }
 
-  await mailer.sendMail({
-    from: process.env.SMTP_FROM,
+  const response = await resend.emails.send({
+    from: process.env.RESEND_FROM,
     to: email,
     subject: "Your Shuttle verification code",
     text: `Your Shuttle verification code is ${code}. It expires in 10 minutes.`,
     html: `<p>Your Shuttle verification code is:</p><p style="font-size: 28px; font-weight: bold; letter-spacing: 8px">${code}</p><p>This code expires in 10 minutes.</p>`,
   });
+
+  if (response.error) {
+    throw new Error(response.error.message || "Unable to send verification code");
+  }
 };
 
 router.post("/request-otp", async (req, res) => {
