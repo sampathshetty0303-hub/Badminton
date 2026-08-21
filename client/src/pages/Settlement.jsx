@@ -4,12 +4,16 @@ import { useEffect, useState } from "react";
 import AppShell from "../components/AppShell";
 import api from "../services/api";
 
-function PaymentList({ payments, onMarkPaid }) {
+function PaymentList({ payments, onMarkPaid, canManage }) {
   if (payments.length === 0) return <div className="empty-state"><h3>All players are even</h3><p>No payment is required for this session.</p></div>;
-  return <div className="payment-list">{payments.map((payment) => <div className="payment-row" key={payment._id}><div><strong>{payment.fromPlayer?.name || "Player"}</strong><small>pays</small></div><ArrowRight size={17} /><div><strong>{payment.toPlayer?.name || "Player"}</strong><small>receives</small></div><b>₹{payment.amount}</b><span className={`payment-status payment-status-${payment.status}`}>{payment.status === "verified" ? "Paid" : "Pending"}</span>{payment.status !== "verified" && <button className="table-action success" onClick={() => onMarkPaid(payment._id)} title="Mark payment as paid"><CheckCircle2 size={15} /></button>}</div>)}</div>;
+  return <div className="payment-list">{payments.map((payment) => <div className="payment-row" key={payment._id}><div><strong>{payment.fromPlayer?.name || "Player"}</strong><small>pays</small></div><ArrowRight size={17} /><div><strong>{payment.toPlayer?.name || "Player"}</strong><small>receives</small></div><b>₹{payment.amount}</b><span className={`payment-status payment-status-${payment.status}`}>{payment.status === "verified" ? "Paid" : "Pending"}</span>{canManage && payment.status !== "verified" && <button className="table-action success" onClick={() => onMarkPaid(payment._id)} title="Mark payment as paid"><CheckCircle2 size={15} /></button>}</div>)}</div>;
 }
 
 function Settlement() {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isAdmin = user.role === "admin";
+  const playerId = String(user?._id || user?.playerId || user?.id || "");
+
   const [day, setDay] = useState(null);
   const [balance, setBalance] = useState(null);
   const [settlement, setSettlement] = useState(null);
@@ -100,20 +104,24 @@ function Settlement() {
 
   if (loading) return <AppShell><div className="loading-page"><div className="spinner" /><span>Loading settlement...</span></div></AppShell>;
 
-  const paidSettlements = settlementHistory.filter((item) => item.payments.every((payment) => payment.status === "verified"));
-  const pendingSettlements = settlementHistory.filter((item) => item.payments.some((payment) => payment.status !== "verified"));
-  const renderHistory = (items) => items.map((item) => <details key={item.settlement._id} className="settlement-history-item"><summary><span>{item.settlement.day?.date ? new Date(item.settlement.day.date).toLocaleDateString("en-IN") : "Closed session"}</span><strong>{item.payments.filter((payment) => payment.status === "verified").length}/{item.payments.length} paid</strong></summary><PaymentList payments={item.payments} onMarkPaid={markPaymentPaid} /></details>);
+  const visiblePayments = payments;
+
+  const visibleHistory = settlementHistory;
+
+  const paidSettlements = visibleHistory.filter((item) => item.payments.every((payment) => payment.status === "verified"));
+  const pendingSettlements = visibleHistory.filter((item) => item.payments.some((payment) => payment.status !== "verified"));
+  const renderHistory = (items) => items.map((item) => <details key={item.settlement._id} className="settlement-history-item"><summary><span>{item.settlement.day?.date ? new Date(item.settlement.day.date).toLocaleDateString("en-IN") : "Closed session"}</span><strong>{item.payments.filter((payment) => payment.status === "verified").length}/{item.payments.length} paid</strong></summary><PaymentList payments={item.payments} onMarkPaid={markPaymentPaid} canManage={isAdmin} /></details>);
 
   return <AppShell>
-    <div className="page-header"><div><div className="eyebrow">SETTLEMENT</div><h1>Daily settlement</h1><p>Players send payment proof by WhatsApp. Admin confirms payments here.</p></div>{day && <div className="date-pill"><Clock3 size={16} /> Session {day.status === "open" ? "open" : "closed"}</div>}</div>
+    <div className="page-header"><div><div className="eyebrow">SETTLEMENT</div><h1>{isAdmin ? "Daily settlement" : "Settlement overview"}</h1><p>{isAdmin ? "Players send payment proof by WhatsApp. Admin confirms payments here." : "Review session balances, who owes whom, and your settlement history."}</p></div>{day && <div className="date-pill"><Clock3 size={16} /> Session {day.status === "open" ? "open" : "closed"}</div>}</div>
     {error && <div className="alert alert-error">{error}</div>}
     {message && <div className="alert alert-success">{message}</div>}
 
-    {balance && <section className="panel settlement-page-panel"><div className="panel-header"><div><span className="panel-kicker">CURRENT BALANCES</span><h2>Who owes what</h2></div><div className="panel-icon"><CircleDollarSign size={20} /></div></div>{balance.balances.length === 0 ? <div className="empty-state small"><h3>No matches played</h3><p>Closing this session will create a settlement with no payment obligations.</p></div> : <div className="settlement-table">{balance.balances.map((entry) => <div className="settlement-row" key={entry.playerId}><strong>{entry.playerName}</strong><span className={entry.amount > 0 ? "settlement-credit" : entry.amount < 0 ? "settlement-debit" : "settlement-even"}>{entry.amount > 0 ? `Gets ₹${entry.amount}` : entry.amount < 0 ? `Pays ₹${Math.abs(entry.amount)}` : "Even"}</span></div>)}</div>}<div className="settlement-footer"><span>{balance.matchesPlayed} completed matches at ₹{balance.betAmount} per player</span>{day?.status === "open" && <button className="primary-button" onClick={closeDay} disabled={closing}><LockKeyhole size={16} />{closing ? "Closing day..." : "Close day and create payments"}</button>}</div></section>}
+    {balance && <section className="panel settlement-page-panel"><div className="panel-header"><div><span className="panel-kicker">CURRENT BALANCES</span><h2>Who owes what</h2></div><div className="panel-icon"><CircleDollarSign size={20} /></div></div>{balance.balances.length === 0 ? <div className="empty-state small"><h3>No matches played</h3><p>Closing this session will create a settlement with no payment obligations.</p></div> : <div className="settlement-table">{balance.balances.map((entry) => <div className="settlement-row" key={entry.playerId}><strong>{entry.playerName}</strong><span className={entry.amount > 0 ? "settlement-credit" : entry.amount < 0 ? "settlement-debit" : "settlement-even"}>{entry.amount > 0 ? `Gets ₹${entry.amount}` : entry.amount < 0 ? `Pays ₹${Math.abs(entry.amount)}` : "Even"}</span></div>)}</div>}<div className="settlement-footer"><span>{balance.matchesPlayed} completed matches at ₹{balance.betAmount} per player</span>{isAdmin && day?.status === "open" && <button className="primary-button" onClick={closeDay} disabled={closing}><LockKeyhole size={16} />{closing ? "Closing day..." : "Close day and create payments"}</button>}</div></section>}
 
-    {settlement && <section className="panel settlement-page-panel payment-plan-panel"><div className="panel-header"><div><span className="panel-kicker">PAYMENT PLAN</span><h2>Who pays whom</h2><p className="payment-help">Verify WhatsApp proof, then mark each payment as paid.</p></div><div className="panel-icon"><CheckCircle2 size={20} /></div></div><PaymentList payments={payments} onMarkPaid={markPaymentPaid} /></section>}
+    {settlement && <section className="panel settlement-page-panel payment-plan-panel"><div className="panel-header"><div><span className="panel-kicker">PAYMENT PLAN</span><h2>Who pays whom</h2><p className="payment-help">{isAdmin ? "Verify WhatsApp proof, then mark each payment as paid." : "These are the transactions connected to your account in this session."}</p></div><div className="panel-icon"><CheckCircle2 size={20} /></div></div><PaymentList payments={visiblePayments} onMarkPaid={markPaymentPaid} canManage={isAdmin} /></section>}
 
-    <section className="panel settlement-page-panel settlement-history-panel"><div className="panel-header"><div><span className="panel-kicker">ARCHIVE</span><h2>Settlement history</h2></div><div className="panel-icon"><HistoryIcon size={20} /></div></div>{settlementHistory.length === 0 ? <div className="empty-state"><h3>No settlement history</h3><p>Closed sessions will appear here.</p></div> : <div className="settlement-history-groups"><div className="settlement-history-group settlement-history-pending"><h3>Pending payments</h3>{pendingSettlements.length === 0 ? <p className="history-group-empty">No pending settlements.</p> : <div className="settlement-history-list">{renderHistory(pendingSettlements)}</div>}</div><div className="settlement-history-group settlement-history-paid"><h3>Fully paid</h3>{paidSettlements.length === 0 ? <p className="history-group-empty">No fully paid settlements yet.</p> : <div className="settlement-history-list">{renderHistory(paidSettlements)}</div>}</div></div>}</section>
+    <section className="panel settlement-page-panel settlement-history-panel"><div className="panel-header"><div><span className="panel-kicker">ARCHIVE</span><h2>Settlement history</h2></div><div className="panel-icon"><HistoryIcon size={20} /></div></div>{visibleHistory.length === 0 ? <div className="empty-state"><h3>No settlement history</h3><p>Closed sessions will appear here.</p></div> : <div className="settlement-history-groups"><div className="settlement-history-group settlement-history-pending"><h3>Pending payments</h3>{pendingSettlements.length === 0 ? <p className="history-group-empty">No pending settlements.</p> : <div className="settlement-history-list">{renderHistory(pendingSettlements)}</div>}</div><div className="settlement-history-group settlement-history-paid"><h3>Fully paid</h3>{paidSettlements.length === 0 ? <p className="history-group-empty">No fully paid settlements yet.</p> : <div className="settlement-history-list">{renderHistory(paidSettlements)}</div>}</div></div>}</section>
   </AppShell>;
 }
 

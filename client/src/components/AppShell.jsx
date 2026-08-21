@@ -59,6 +59,16 @@ function AppShell({ children }) {
       path: "/player",
       icon: LayoutDashboard,
     },
+    {
+      label: "Settlement",
+      path: "/player/settlement",
+      icon: WalletCards,
+    },
+    {
+      label: "History",
+      path: "/player/history",
+      icon: History,
+    },
   ];
 
   const logout = () => {

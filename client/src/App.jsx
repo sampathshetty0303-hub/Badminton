@@ -115,6 +115,24 @@ function App() {
           }
         />
 
+        <Route
+          path="/player/settlement"
+          element={
+            <ProtectedRoute>
+              <Settlement />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/player/history"
+          element={
+            <ProtectedRoute>
+              <History />
+            </ProtectedRoute>
+          }
+        />
+
         {/* ================================================== */}
         {/* DEFAULT */}
         {/* ================================================== */}

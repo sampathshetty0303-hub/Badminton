@@ -28,7 +28,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/login";
+      window.location.hash = "#/login";
     }
 
     if (
@@ -37,7 +37,7 @@ api.interceptors.response.use(
     ) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/pending-approval";
+      window.location.hash = "#/pending-approval";
     }
 
     return Promise.reject(error);
