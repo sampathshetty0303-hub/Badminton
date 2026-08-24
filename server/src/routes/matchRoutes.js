@@ -12,10 +12,10 @@ const {
 const router = express.Router();
 
 // ============================================================
-// GET MATCH HISTORY - ADMIN ONLY
+// GET MATCH HISTORY - LOGGED-IN USERS
 // ============================================================
 
-router.get("/", protect, adminOnly, async (req, res) => {
+router.get("/", protect, async (req, res) => {
   try {
     const matches = await Match.find()
       .populate("day", "date status")
