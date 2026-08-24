@@ -18,7 +18,7 @@ const emptyStatistics = {
   losses: 0,
   pointsScored: 0,
   winPercentage: 0,
-  rating: 1000,
+  rating: 0,
 };
 
 function PlayerStatistics() {
@@ -68,7 +68,7 @@ function PlayerStatistics() {
 
       <section className="panel player-rating-panel">
         <div className="panel-header"><div><span className="panel-kicker">OVERALL RATING</span><h2>Your player rating</h2></div><div className="panel-icon"><BarChart3 size={20} /></div></div>
-        <div className="player-rating-content"><strong>{statistics.rating}</strong><p>Starts at 1000. Each win adds 25 points and each loss subtracts 10 points.</p></div>
+        <div className="player-rating-content"><strong>{statistics.rating}<small>/100</small></strong><p>Calculated automatically from your all-time completed matches and win percentage.</p></div>
       </section>
     </AppShell>
   );

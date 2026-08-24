@@ -2780,6 +2780,12 @@ body {
   line-height: 1;
 }
 
+.player-rating-content strong small {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 16px;
+}
+
 .player-rating-content p {
   max-width: 48ch;
   font-size: 11px;

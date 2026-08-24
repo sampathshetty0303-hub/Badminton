@@ -2,6 +2,7 @@ const express = require("express");
 
 const Player = require("../models/Player");
 const Match = require("../models/Match");
+const User = require("../models/User");
 
 const {
   protect,
@@ -70,22 +71,28 @@ router.get("/me/statistics", protect, async (req, res) => {
       return res.status(403).json({ message: "Player access required." });
     }
 
+    const user = await User.findById(req.user.id).select("name");
+
+    if (!user) {
+      return res.status(401).json({ message: "Player account not found." });
+    }
+
     const player = await Player.findOne({
       name: {
-        $regex: `^${req.user.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+        $regex: `^${user.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
         $options: "i",
       },
     });
 
     if (!player) {
       return res.json({
-        playerName: req.user.name,
+        playerName: user.name,
         totalMatches: 0,
         wins: 0,
         losses: 0,
         pointsScored: 0,
         winPercentage: 0,
-        rating: 1000,
+        rating: 0,
       });
     }
 
@@ -113,7 +120,7 @@ router.get("/me/statistics", protect, async (req, res) => {
       losses,
       pointsScored,
       winPercentage: matches.length ? Math.round((wins / matches.length) * 100) : 0,
-      rating: Math.max(0, 1000 + (wins * 25) - (losses * 10)),
+      rating: Math.min(99, Math.round((wins / matches.length) * 100)),
     });
   } catch (error) {
     console.error("Get player statistics error:", error);
