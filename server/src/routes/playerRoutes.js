@@ -1,6 +1,7 @@
 const express = require("express");
 
 const Player = require("../models/Player");
+const Match = require("../models/Match");
 
 const {
   protect,
@@ -55,6 +56,68 @@ router.get("/active", protect, async (req, res) => {
     res.status(500).json({
       message: "Failed to get active players",
     });
+  }
+});
+
+// ============================================================
+// GET PLAYER STATISTICS
+// LOGGED-IN PLAYERS ONLY
+// ============================================================
+
+router.get("/me/statistics", protect, async (req, res) => {
+  try {
+    if (req.user.role !== "player") {
+      return res.status(403).json({ message: "Player access required." });
+    }
+
+    const player = await Player.findOne({
+      name: {
+        $regex: `^${req.user.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+        $options: "i",
+      },
+    });
+
+    if (!player) {
+      return res.json({
+        playerName: req.user.name,
+        totalMatches: 0,
+        wins: 0,
+        losses: 0,
+        pointsScored: 0,
+        winPercentage: 0,
+        rating: 1000,
+      });
+    }
+
+    const matches = await Match.find({
+      status: "completed",
+      $or: [{ teamA: player._id }, { teamB: player._id }],
+    }).select("teamA teamB scoreA scoreB winner");
+
+    let wins = 0;
+    let pointsScored = 0;
+
+    matches.forEach((match) => {
+      const isTeamA = match.teamA.some((id) => String(id) === String(player._id));
+      const winningTeam = isTeamA ? "A" : "B";
+      wins += match.winner === winningTeam ? 1 : 0;
+      pointsScored += isTeamA ? match.scoreA : match.scoreB;
+    });
+
+    const losses = matches.length - wins;
+
+    return res.json({
+      playerName: player.name,
+      totalMatches: matches.length,
+      wins,
+      losses,
+      pointsScored,
+      winPercentage: matches.length ? Math.round((wins / matches.length) * 100) : 0,
+      rating: Math.max(0, 1000 + (wins * 25) - (losses * 10)),
+    });
+  } catch (error) {
+    console.error("Get player statistics error:", error);
+    return res.status(500).json({ message: "Failed to load player statistics." });
   }
 });
 

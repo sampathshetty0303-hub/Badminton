@@ -12,6 +12,7 @@ import Players from "./pages/Players";
 import Matches from "./pages/Matches";
 import Settlement from "./pages/Settlement";
 import History from "./pages/History";
+import PlayerStatistics from "./pages/PlayerStatistics";
 import PendingApproval from "./pages/PendingApproval";
 
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -129,6 +130,15 @@ function App() {
           element={
             <ProtectedRoute>
               <History />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/player/statistics"
+          element={
+            <ProtectedRoute>
+              <PlayerStatistics />
             </ProtectedRoute>
           }
         />

@@ -4,6 +4,7 @@ import {
   Trophy,
   WalletCards,
   History,
+  BarChart3,
   Settings,
   LogOut,
   Menu,
@@ -68,6 +69,11 @@ function AppShell({ children }) {
       label: "History",
       path: "/player/history",
       icon: History,
+    },
+    {
+      label: "Statistics",
+      path: "/player/statistics",
+      icon: BarChart3,
     },
   ];
 
