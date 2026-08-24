@@ -1,4 +1,4 @@
-const CACHE_NAME = "shuttle-shell-v1";
+const CACHE_NAME = "shuttle-shell-v2";
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {
