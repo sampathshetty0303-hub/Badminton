@@ -49,6 +49,9 @@ function PlayerStatistics() {
     return <AppShell><div className="loading-page"><div className="spinner" /><span>Loading your statistics...</span></div></AppShell>;
   }
 
+  const netMoney = statistics.moneyWon - statistics.moneyLost;
+  const isInProfit = netMoney >= 0;
+
   return (
     <AppShell>
       <div className="page-header player-page-header">
@@ -68,8 +71,7 @@ function PlayerStatistics() {
         <div className="stat-card"><div className="stat-icon stat-icon-danger"><CheckCircle2 size={20} /></div><div className="stat-content"><span>Total matches lost</span><strong className="stat-negative">{statistics.losses}</strong></div></div>
         <div className="stat-card"><div className="stat-icon"><Target size={20} /></div><div className="stat-content"><span>Total points scored</span><strong>{statistics.pointsScored}</strong></div></div>
         <div className="stat-card"><div className="stat-icon stat-icon-danger"><Target size={20} /></div><div className="stat-content"><span>Total points conceded</span><strong>{statistics.pointsConceded}</strong></div></div>
-        <div className="stat-card"><div className="stat-icon"><CircleDollarSign size={20} /></div><div className="stat-content"><span>Total money won</span><strong className="stat-positive">₹{statistics.moneyWon}</strong></div></div>
-        <div className="stat-card"><div className="stat-icon stat-icon-danger"><CircleDollarSign size={20} /></div><div className="stat-content"><span>Total money lost</span><strong className="stat-negative">₹{statistics.moneyLost}</strong></div></div>
+        <div className="stat-card"><div className={`stat-icon ${isInProfit ? "" : "stat-icon-danger"}`}><CircleDollarSign size={20} /></div><div className="stat-content"><span>{isInProfit ? "Money won" : "Money lost"}</span><strong className={isInProfit ? "stat-positive" : "stat-negative"}>₹{Math.abs(netMoney)}</strong></div></div>
         <div className="stat-card"><div className="stat-icon"><Percent size={20} /></div><div className="stat-content"><span>Win percentage</span><strong>{statistics.winPercentage}%</strong></div></div>
       </div>
 
