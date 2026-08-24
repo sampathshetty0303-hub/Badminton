@@ -2,6 +2,7 @@ import {
   UserCheck,
   UserX,
   Phone,
+  Trophy,
   Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -10,6 +11,7 @@ import AppShell from "../components/AppShell";
 
 function Players() {
   const [players, setPlayers] = useState([]);
+  const [rankings, setRankings] = useState([]);
   const [pendingAccounts, setPendingAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
@@ -25,12 +27,14 @@ function Players() {
       setLoading(true);
       setError("");
 
-      const [playersResponse, pendingResponse] = await Promise.all([
+      const [playersResponse, pendingResponse, rankingsResponse] = await Promise.all([
         api.get("/players"),
         api.get("/admin/pending-users"),
+        api.get("/players/rankings"),
       ]);
       setPlayers(playersResponse.data);
       setPendingAccounts(Array.isArray(pendingResponse.data) ? pendingResponse.data : []);
+      setRankings(Array.isArray(rankingsResponse.data) ? rankingsResponse.data : []);
     } catch (err) {
       console.error(err);
       setError(
@@ -141,6 +145,8 @@ function Players() {
       words[words.length - 1][0]
     ).toUpperCase();
   };
+
+  const getRanking = (playerId) => rankings.find((ranking) => String(ranking.playerId) === String(playerId));
 
   const activeCount = players.filter(
     (p) => p.isActive
@@ -303,6 +309,8 @@ function Players() {
                         <Phone size={11} />
                         {player.phone || "No phone number"}
                       </span>
+
+                      {getRanking(player._id) && <span className="player-ranking"><Trophy size={11} />Rank {getRanking(player._id).rank} · {getRanking(player._id).rating}/100</span>}
                     </div>
 
                     <div className="player-status">

@@ -54,6 +54,11 @@ function AppShell({ children }) {
       path: "/admin/history",
       icon: History,
     },
+    {
+      label: "Rank",
+      path: "/rankings",
+      icon: Trophy,
+    },
   ] : [
     {
       label: "Overview",
@@ -74,6 +79,11 @@ function AppShell({ children }) {
       label: "Statistics",
       path: "/player/statistics",
       icon: BarChart3,
+    },
+    {
+      label: "Rank",
+      path: "/rankings",
+      icon: Trophy,
     },
   ];
 

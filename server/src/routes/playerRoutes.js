@@ -159,10 +159,6 @@ router.get("/me/statistics", protect, async (req, res) => {
 
 router.get("/rankings", protect, async (req, res) => {
   try {
-    if (req.user.role !== "player") {
-      return res.status(403).json({ message: "Player access required." });
-    }
-
     const [players, matches] = await Promise.all([
       Player.find({ isActive: true }).select("name").sort({ name: 1 }),
       Match.find({ status: "completed" }).select("teamA teamB scoreA scoreB winner stakePerPlayer"),
