@@ -11,6 +11,49 @@ const {
 
 const router = express.Router();
 
+const calculatePlayerStatistics = (playerId, matches) => {
+  const playerMatches = matches.filter((match) => (
+    match.teamA.some((id) => String(id) === String(playerId))
+    || match.teamB.some((id) => String(id) === String(playerId))
+  ));
+  let wins = 0;
+  let pointsScored = 0;
+  let pointsConceded = 0;
+  let moneyWon = 0;
+  let moneyLost = 0;
+
+  playerMatches.forEach((match) => {
+    const isTeamA = match.teamA.some((id) => String(id) === String(playerId));
+    const winningTeam = isTeamA ? "A" : "B";
+    wins += match.winner === winningTeam ? 1 : 0;
+    pointsScored += isTeamA ? match.scoreA : match.scoreB;
+    pointsConceded += isTeamA ? match.scoreB : match.scoreA;
+    if (match.winner === winningTeam) moneyWon += match.stakePerPlayer || 5;
+    else moneyLost += match.stakePerPlayer || 5;
+  });
+
+  const totalMatches = playerMatches.length;
+  const losses = totalMatches - wins;
+  const winRateScore = totalMatches ? (wins / totalMatches) * 50 : 0;
+  const pointShare = pointsScored + pointsConceded > 0
+    ? pointsScored / (pointsScored + pointsConceded)
+    : 0;
+  const pointPerformanceScore = pointShare * 30;
+  const experienceScore = Math.min(totalMatches / 10, 1) * 20;
+
+  return {
+    totalMatches,
+    wins,
+    losses,
+    pointsScored,
+    pointsConceded,
+    moneyWon,
+    moneyLost,
+    winPercentage: totalMatches ? Math.round((wins / totalMatches) * 100) : 0,
+    rating: Math.min(99, Math.round(winRateScore + pointPerformanceScore + experienceScore)),
+  };
+};
+
 // ============================================================
 // GET ALL PLAYERS
 // Logged-in users can view players
@@ -100,41 +143,46 @@ router.get("/me/statistics", protect, async (req, res) => {
     const matches = await Match.find({
       status: "completed",
       $or: [{ teamA: player._id }, { teamB: player._id }],
-    }).select("teamA teamB scoreA scoreB winner");
+    }).select("teamA teamB scoreA scoreB winner stakePerPlayer");
 
-    let wins = 0;
-    let pointsScored = 0;
-    let pointsConceded = 0;
-
-    matches.forEach((match) => {
-      const isTeamA = match.teamA.some((id) => String(id) === String(player._id));
-      const winningTeam = isTeamA ? "A" : "B";
-      wins += match.winner === winningTeam ? 1 : 0;
-      pointsScored += isTeamA ? match.scoreA : match.scoreB;
-      pointsConceded += isTeamA ? match.scoreB : match.scoreA;
-    });
-
-    const losses = matches.length - wins;
-    const winRateScore = (wins / matches.length) * 50;
-    const pointShare = pointsScored + pointsConceded > 0
-      ? pointsScored / (pointsScored + pointsConceded)
-      : 0;
-    const pointPerformanceScore = pointShare * 30;
-    const experienceScore = Math.min(matches.length / 10, 1) * 20;
+    const statistics = calculatePlayerStatistics(player._id, matches);
 
     return res.json({
       playerName: player.name,
-      totalMatches: matches.length,
-      wins,
-      losses,
-      pointsScored,
-      pointsConceded,
-      winPercentage: matches.length ? Math.round((wins / matches.length) * 100) : 0,
-      rating: Math.min(99, Math.round(winRateScore + pointPerformanceScore + experienceScore)),
+      ...statistics,
     });
   } catch (error) {
     console.error("Get player statistics error:", error);
     return res.status(500).json({ message: "Failed to load player statistics." });
+  }
+});
+
+router.get("/rankings", protect, async (req, res) => {
+  try {
+    if (req.user.role !== "player") {
+      return res.status(403).json({ message: "Player access required." });
+    }
+
+    const [players, matches] = await Promise.all([
+      Player.find({ isActive: true }).select("name").sort({ name: 1 }),
+      Match.find({ status: "completed" }).select("teamA teamB scoreA scoreB winner stakePerPlayer"),
+    ]);
+
+    const rankings = players.map((player) => ({
+      playerId: player._id,
+      playerName: player.name,
+      ...calculatePlayerStatistics(player._id, matches),
+    })).sort((left, right) => (
+      right.rating - left.rating
+      || right.wins - left.wins
+      || right.pointsScored - left.pointsScored
+      || left.playerName.localeCompare(right.playerName)
+    )).map((player, index) => ({ ...player, rank: index + 1 }));
+
+    return res.json(rankings);
+  } catch (error) {
+    console.error("Get player rankings error:", error);
+    return res.status(500).json({ message: "Failed to load player rankings." });
   }
 });
 
