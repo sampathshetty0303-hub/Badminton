@@ -2987,6 +2987,7 @@ body {
   .payment-row > .table-action { grid-column: 4; grid-row: 2; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; padding: 0; }
   .history-row { grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
   .history-matchup { grid-column: 2; grid-row: 1; width: 100%; }
+  .history-matchup strong { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
   .history-result { grid-column: 2; grid-row: 2; justify-self: start; text-align: left; }
   .history-actions { grid-column: 2; grid-row: 3; justify-content: flex-start; }
   .history-edit-grid, .history-score-grid { grid-template-columns: 1fr; }
