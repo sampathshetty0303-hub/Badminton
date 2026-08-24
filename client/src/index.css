@@ -2718,6 +2718,28 @@ body {
   align-items: start;
 }
 
+.player-stats-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.player-stats-grid .stat-card {
+  min-width: 0;
+  padding: 18px;
+}
+
+.player-stats-grid .stat-icon {
+  flex: 0 0 auto;
+  margin-right: 10px;
+}
+
+.player-stats-grid .stat-content {
+  min-width: 0;
+}
+
+.player-stats-grid .stat-content span {
+  white-space: normal;
+}
+
 .icon-button {
   width: 32px;
   height: 32px;
@@ -2994,6 +3016,7 @@ body {
 }
 
 @media (max-width: 900px) {
+  .player-stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .player-dashboard-grid { grid-template-columns: 1fr; }
 }
 

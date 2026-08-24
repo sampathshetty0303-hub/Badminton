@@ -6,7 +6,9 @@ import {
   CheckCircle2,
   CircleDollarSign,
   Clock3,
+  Percent,
   RefreshCw,
+  Target,
   Trophy,
   Users,
 } from "lucide-react";
@@ -79,6 +81,13 @@ function PlayerDashboard() {
     return match.winner === team;
   }).length;
   const losses = completedMatches.length - wins;
+  const pointsFor = completedMatches.reduce((total, match) => {
+    return total + (match.teamA.some(isCurrentPlayer) ? match.scoreA : match.scoreB);
+  }, 0);
+  const pointsAgainst = completedMatches.reduce((total, match) => {
+    return total + (match.teamA.some(isCurrentPlayer) ? match.scoreB : match.scoreA);
+  }, 0);
+  const winRate = completedMatches.length ? Math.round((wins / completedMatches.length) * 100) : 0;
   const balanceEntry = settlement?.entries?.find(
     (entry) => String(entry.player?._id || entry.player) === String(playerId) || entry.player?.name === user.name
   );
@@ -111,6 +120,8 @@ function PlayerDashboard() {
       <div className="stats-grid player-stats-grid">
         <div className="stat-card"><div className="stat-icon"><Trophy size={20} /></div><div className="stat-content"><span>Your matches</span><strong>{playerMatches.length}</strong></div><div className="stat-accent"><Users size={16} /></div></div>
         <div className="stat-card"><div className="stat-icon"><CheckCircle2 size={20} /></div><div className="stat-content"><span>Wins / losses</span><strong><span className="stat-positive">{wins}</span> / <span className="stat-negative">{losses}</span></strong></div></div>
+        <div className="stat-card"><div className="stat-icon"><Percent size={20} /></div><div className="stat-content"><span>Win rate</span><strong>{winRate}%</strong></div></div>
+        <div className="stat-card"><div className="stat-icon"><Target size={20} /></div><div className="stat-content"><span>Points for / against</span><strong>{pointsFor} / {pointsAgainst}</strong></div></div>
         <div className="stat-card"><div className={`stat-icon ${balance < 0 ? "stat-icon-danger" : ""}`}>{balance < 0 ? <ArrowDownRight size={20} /> : <ArrowUpRight size={20} />}</div><div className="stat-content"><span>Running balance</span><strong className={balance < 0 ? "stat-negative" : "stat-positive"}>{balance >= 0 ? "+" : "-"}₹{Math.abs(balance)}</strong></div></div>
       </div>
 
