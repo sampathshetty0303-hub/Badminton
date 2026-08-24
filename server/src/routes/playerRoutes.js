@@ -91,6 +91,7 @@ router.get("/me/statistics", protect, async (req, res) => {
         wins: 0,
         losses: 0,
         pointsScored: 0,
+        pointsConceded: 0,
         winPercentage: 0,
         rating: 0,
       });
@@ -103,15 +104,23 @@ router.get("/me/statistics", protect, async (req, res) => {
 
     let wins = 0;
     let pointsScored = 0;
+    let pointsConceded = 0;
 
     matches.forEach((match) => {
       const isTeamA = match.teamA.some((id) => String(id) === String(player._id));
       const winningTeam = isTeamA ? "A" : "B";
       wins += match.winner === winningTeam ? 1 : 0;
       pointsScored += isTeamA ? match.scoreA : match.scoreB;
+      pointsConceded += isTeamA ? match.scoreB : match.scoreA;
     });
 
     const losses = matches.length - wins;
+    const winRateScore = (wins / matches.length) * 50;
+    const pointShare = pointsScored + pointsConceded > 0
+      ? pointsScored / (pointsScored + pointsConceded)
+      : 0;
+    const pointPerformanceScore = pointShare * 30;
+    const experienceScore = Math.min(matches.length / 10, 1) * 20;
 
     return res.json({
       playerName: player.name,
@@ -119,8 +128,9 @@ router.get("/me/statistics", protect, async (req, res) => {
       wins,
       losses,
       pointsScored,
+      pointsConceded,
       winPercentage: matches.length ? Math.round((wins / matches.length) * 100) : 0,
-      rating: Math.min(99, Math.round((wins / matches.length) * 100)),
+      rating: Math.min(99, Math.round(winRateScore + pointPerformanceScore + experienceScore)),
     });
   } catch (error) {
     console.error("Get player statistics error:", error);

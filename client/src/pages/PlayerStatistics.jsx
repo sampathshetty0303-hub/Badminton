@@ -17,6 +17,7 @@ const emptyStatistics = {
   wins: 0,
   losses: 0,
   pointsScored: 0,
+  pointsConceded: 0,
   winPercentage: 0,
   rating: 0,
 };
@@ -63,12 +64,13 @@ function PlayerStatistics() {
         <div className="stat-card"><div className="stat-icon"><Trophy size={20} /></div><div className="stat-content"><span>Total matches won</span><strong className="stat-positive">{statistics.wins}</strong></div></div>
         <div className="stat-card"><div className="stat-icon stat-icon-danger"><CheckCircle2 size={20} /></div><div className="stat-content"><span>Total matches lost</span><strong className="stat-negative">{statistics.losses}</strong></div></div>
         <div className="stat-card"><div className="stat-icon"><Target size={20} /></div><div className="stat-content"><span>Total points scored</span><strong>{statistics.pointsScored}</strong></div></div>
+        <div className="stat-card"><div className="stat-icon stat-icon-danger"><Target size={20} /></div><div className="stat-content"><span>Total points conceded</span><strong>{statistics.pointsConceded}</strong></div></div>
         <div className="stat-card"><div className="stat-icon"><Percent size={20} /></div><div className="stat-content"><span>Win percentage</span><strong>{statistics.winPercentage}%</strong></div></div>
       </div>
 
       <section className="panel player-rating-panel">
         <div className="panel-header"><div><span className="panel-kicker">OVERALL RATING</span><h2>Your player rating</h2></div><div className="panel-icon"><BarChart3 size={20} /></div></div>
-        <div className="player-rating-content"><strong>{statistics.rating}<small>/100</small></strong><p>Calculated automatically from your all-time completed matches and win percentage.</p></div>
+        <div className="player-rating-content"><strong>{statistics.rating}<small>/100</small></strong><p>Calculated from wins, losses, points scored, points conceded, and completed-match experience.</p></div>
       </section>
     </AppShell>
   );

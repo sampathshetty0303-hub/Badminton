@@ -2741,7 +2741,7 @@ body {
 }
 
 .player-statistics-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .player-statistics-grid .stat-card {
@@ -3069,7 +3069,7 @@ body {
 
 @media (max-width: 900px) {
   .player-stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .player-statistics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .player-statistics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .player-dashboard-grid { grid-template-columns: 1fr; }
 }
 
