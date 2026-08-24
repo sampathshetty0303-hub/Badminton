@@ -2979,9 +2979,12 @@ body {
   .settlement-footer { align-items: stretch; flex-direction: column; }
   .pending-account-row { align-items: flex-start; flex-direction: column; }
   .settlement-history-groups { grid-template-columns: 1fr; padding: 12px; }
-  .payment-row { grid-template-columns: 1fr 20px 1fr; gap: 8px; }
-  .payment-row > b { text-align: left; }
-  .payment-status { justify-self: start; }
+  .payment-row { grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr) auto; gap: 8px; }
+  .payment-row > div { min-width: 0; }
+  .payment-row > div strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .payment-row > b { grid-column: 1; grid-row: 2; text-align: left; }
+  .payment-status { grid-column: 3; grid-row: 2; justify-self: start; }
+  .payment-row > .table-action { grid-column: 4; grid-row: 2; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; padding: 0; }
   .history-row { grid-template-columns: 26px 1fr 70px; gap: 8px; }
   .history-actions { grid-column: 2 / -1; justify-content: flex-start; }
   .history-edit-grid, .history-score-grid { grid-template-columns: 1fr; }
