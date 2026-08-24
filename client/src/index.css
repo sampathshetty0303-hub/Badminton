@@ -3074,6 +3074,7 @@ body {
 }
 
 @media (max-width: 600px) {
+  .player-stats-grid { grid-template-columns: 1fr; }
   .player-rating-content { align-items: flex-start; flex-direction: column; gap: 12px; padding: 20px 16px; }
   .player-status-banner { align-items: flex-start; padding: 16px; }
   .player-status-banner .status-badge { margin-left: 0; }
